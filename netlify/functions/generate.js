@@ -1,7 +1,28 @@
+// Simple in-memory rate limiter — resets when function cold-starts (good enough for beta)
+const LIMIT = 10; // max generations per IP per day
+const usage = {}; // { ip: { count, date } }
+
 exports.handler = async function (event) {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
+
+  // Rate limit check
+  const ip = event.headers['x-forwarded-for']?.split(',')[0].trim() || 'unknown';
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+  if (!usage[ip] || usage[ip].date !== today) {
+    usage[ip] = { count: 0, date: today };
+  }
+
+  if (usage[ip].count >= LIMIT) {
+    return {
+      statusCode: 429,
+      body: JSON.stringify({ error: `Free limit reached (${LIMIT} generations/day). Come back tomorrow or contact us to upgrade.` })
+    };
+  }
+
+  usage[ip].count++;
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
