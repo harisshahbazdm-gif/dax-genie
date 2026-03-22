@@ -281,7 +281,10 @@ const EXAMPLES = {
 function loadExample(key) {
   const ex = EXAMPLES[key];
   if (!ex) return;
-  document.getElementById('schema').value = ex.schema;
+  const currentSchema = document.getElementById('schema').value.trim();
+  if (!currentSchema) {
+    document.getElementById('schema').value = ex.schema;
+  }
   document.getElementById('description').value = ex.description;
 }
 
