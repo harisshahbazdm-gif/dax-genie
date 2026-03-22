@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DAX Genie — AI Formula Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --amber: #EF9F27;
+    --amber-glow: rgba(239,159,39,0.12);
+    --amber-border: rgba(239,159,39,0.25);
+    --bg: #0C0B09;
+    --surface: #141210;
+    --surface2: #1C1A16;
+    --surface3: #242118;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #F0EDE6;
+    --text-muted: #7A7469;
+    --text-dim: #4A453E;
+    --green: #97C459;
+    --green-dim: rgba(151,196,89,0.12);
+    --red: #E24B4A;
+    --mono: 'JetBrains Mono', monospace;
+    --display: 'Syne', sans-serif;
+  }
+
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--mono); }
+  body { display: flex; flex-direction: column; min-height: 100vh; }
+
+  header {
+    padding: 1.5rem 2rem; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 1rem; background: var(--surface);
+  }
+  .logo-mark {
+    width: 36px; height: 36px; background: var(--amber); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--display); font-weight: 800; font-size: 18px; color: #1a1200; flex-shrink: 0;
+  }
+  .logo-text { font-family: var(--display); font-weight: 700; font-size: 1.25rem; letter-spacing: -0.02em; }
+  .logo-text span { color: var(--amber); }
+  .badge {
+    margin-left: auto; font-size: 10px; font-weight: 500; letter-spacing: 0.08em;
+    padding: 4px 10px; border-radius: 100px;
+    border: 1px solid var(--amber-border); color: var(--amber); background: var(--amber-glow); text-transform: uppercase;
+  }
+
+  main {
+    flex: 1; display: grid; grid-template-columns: 1fr 1fr;
+    overflow: hidden; height: calc(100vh - 69px);
+  }
+
+  .panel { padding: 2rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1.5rem; }
+  .panel-left { border-right: 1px solid var(--border); background: var(--surface); }
+  .panel-right { background: var(--bg); }
+
+  .section-label {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;
+  }
+  .field { display: flex; flex-direction: column; gap: 0.4rem; }
+
+  textarea {
+    background: var(--surface2); border: 1px solid var(--border2); border-radius: 8px;
+    color: var(--text); font-family: var(--mono); font-size: 13px;
+    padding: 0.875rem 1rem; outline: none; resize: none;
+    transition: border-color 0.15s; line-height: 1.6; width: 100%;
+  }
+  textarea:focus { border-color: var(--amber); }
+  textarea::placeholder { color: var(--text-dim); }
+  #schema { height: 180px; }
+  #description { height: 100px; }
+
+  .examples { display: flex; flex-wrap: wrap; gap: 6px; }
+  .example-chip {
+    font-size: 11px; padding: 4px 10px; border-radius: 100px;
+    border: 1px solid var(--border2); color: var(--text-muted);
+    background: var(--surface3); cursor: pointer; transition: all 0.15s; font-family: var(--mono);
+  }
+  .example-chip:hover { border-color: var(--amber-border); color: var(--amber); background: var(--amber-glow); }
+
+  #generate-btn {
+    background: var(--amber); color: #1a1200; border: none; border-radius: 8px;
+    padding: 0.875rem 1.5rem; font-family: var(--display); font-weight: 700; font-size: 15px;
+    cursor: pointer; transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center; gap: 8px; letter-spacing: -0.01em;
+  }
+  #generate-btn:hover { background: #FAC775; }
+  #generate-btn:active { transform: scale(0.98); }
+  #generate-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .context-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  select {
+    background: var(--surface2); border: 1px solid var(--border2); border-radius: 8px;
+    color: var(--text); font-family: var(--mono); font-size: 12px;
+    padding: 0.6rem 0.875rem; outline: none; cursor: pointer; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237A7469' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 0.75rem center;
+    padding-right: 2rem; width: 100%;
+  }
+  select:focus { border-color: var(--amber); }
+
+  .output-empty {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 1rem; text-align: center; padding: 3rem;
+  }
+  .output-glyph { font-size: 48px; opacity: 0.15; font-family: var(--mono); font-weight: 600; color: var(--amber); letter-spacing: -4px; }
+  .output-hint { font-size: 13px; color: var(--text-dim); line-height: 1.7; max-width: 280px; }
+
+  .result { display: flex; flex-direction: column; gap: 1.25rem; }
+  .result-block { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .result-block-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); background: var(--surface3);
+  }
+  .result-block-title { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+  .copy-btn {
+    font-size: 11px; font-family: var(--mono); padding: 3px 10px; border-radius: 100px;
+    border: 1px solid var(--border2); background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.15s;
+  }
+  .copy-btn:hover { border-color: var(--amber-border); color: var(--amber); }
+  .copy-btn.copied { border-color: var(--green); color: var(--green); background: var(--green-dim); }
+  .dax-code {
+    padding: 1.25rem; font-family: var(--mono); font-size: 13px;
+    line-height: 1.8; color: var(--text); white-space: pre-wrap; word-break: break-word;
+  }
+  .kw { color: #EF9F27; } .fn { color: #97C459; } .str { color: #5DCAA5; } .num { color: #85B7EB; } .cm { color: #4A453E; }
+  .explanation-text { padding: 1.25rem; font-size: 13px; line-height: 1.8; color: var(--text-muted); }
+  .explanation-text strong { color: var(--text); font-weight: 500; }
+
+  .loading-row { display: flex; align-items: center; gap: 10px; padding: 1.5rem; color: var(--text-muted); font-size: 13px; }
+  .spinner {
+    width: 16px; height: 16px; border: 2px solid var(--border2); border-top-color: var(--amber);
+    border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-msg {
+    background: rgba(226,75,74,0.08); border: 1px solid rgba(226,75,74,0.2);
+    border-radius: 8px; padding: 1rem 1.25rem; font-size: 13px; color: var(--red); line-height: 1.6;
+  }
+
+  .history-list { display: flex; flex-direction: column; gap: 6px; }
+  .history-item {
+    padding: 0.6rem 0.875rem; background: var(--surface3); border: 1px solid var(--border);
+    border-radius: 6px; font-size: 12px; color: var(--text-muted); cursor: pointer; transition: all 0.15s;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .history-item:hover { border-color: var(--amber-border); color: var(--amber); }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">G</div>
+  <span class="logo-text">DAX <span>Genie</span></span>
+  <span class="badge">Beta</span>
+</header>
+
+<main>
+  <div class="panel panel-left">
+
+    <div class="field">
+      <div class="section-label">Table Schema</div>
+      <textarea id="schema" placeholder="Paste your table structure here. Example:
+
+Sales[OrderDate] — Date
+Sales[Amount] — Decimal
+Sales[CustomerID] — Integer
+Sales[ProductCategory] — Text
+Date[Date] — Date
+Date[Year] — Integer
+Date[Month] — Integer"></textarea>
+    </div>
+
+    <div class="field">
+      <div class="section-label">What do you want to calculate?</div>
+      <textarea id="description" placeholder="Describe in plain English...
+
+Example: Calculate YTD sales for the current year, filtered by product category"></textarea>
+    </div>
+
+    <div>
+      <div class="section-label" style="margin-bottom:0.5rem;">Quick examples — click to load</div>
+      <div class="examples">
+        <span class="example-chip" onclick="loadExample('ytd')">YTD Sales</span>
+        <span class="example-chip" onclick="loadExample('mtd')">MTD Sales</span>
+        <span class="example-chip" onclick="loadExample('qtd')">QTD Sales</span>
+        <span class="example-chip" onclick="loadExample('mom')">MoM Growth %</span>
+        <span class="example-chip" onclick="loadExample('yoy')">YoY Growth %</span>
+        <span class="example-chip" onclick="loadExample('rolling3')">Rolling 3M Avg</span>
+        <span class="example-chip" onclick="loadExample('rolling12')">Rolling 12M Avg</span>
+        <span class="example-chip" onclick="loadExample('dod')">Day-over-Day</span>
+        <span class="example-chip" onclick="loadExample('sply')">Same Period LY</span>
+        <span class="example-chip" onclick="loadExample('rank')">Product Rank</span>
+        <span class="example-chip" onclick="loadExample('pareto')">80/20 Pareto</span>
+        <span class="example-chip" onclick="loadExample('runningtotal')">Running Total</span>
+        <span class="example-chip" onclick="loadExample('pct')">% of Total</span>
+        <span class="example-chip" onclick="loadExample('pctparent')">% of Parent</span>
+        <span class="example-chip" onclick="loadExample('topn')">Top N Filter</span>
+        <span class="example-chip" onclick="loadExample('budget')">Budget vs Actual</span>
+        <span class="example-chip" onclick="loadExample('distinctcount')">Distinct Count</span>
+        <span class="example-chip" onclick="loadExample('avgexclude')">Avg Excl. Outliers</span>
+        <span class="example-chip" onclick="loadExample('lastnonblank')">Last Non-Blank</span>
+        <span class="example-chip" onclick="loadExample('conditional')">Conditional Measure</span>
+      </div>
+    </div>
+
+    <div class="context-row">
+      <div class="field">
+        <div class="section-label">Model type</div>
+        <select id="model-type">
+          <option value="star">Star Schema</option>
+          <option value="flat">Flat Table</option>
+          <option value="composite">Composite Model</option>
+          <option value="snowflake">Snowflake</option>
+        </select>
+      </div>
+      <div class="field">
+        <div class="section-label">Output style</div>
+        <select id="output-style">
+          <option value="formatted">Formatted + explained</option>
+          <option value="minimal">Minimal (code only)</option>
+          <option value="verbose">Verbose (step-by-step)</option>
+        </select>
+      </div>
+    </div>
+
+    <button id="generate-btn" onclick="generateDAX()">
+      <span>⚡</span> Generate DAX Formula
+    </button>
+
+    <div id="history-section" style="display:none;">
+      <div class="section-label" style="margin-bottom:0.5rem;">Recent</div>
+      <div class="history-list" id="history-list"></div>
+    </div>
+
+  </div>
+
+  <div class="panel panel-right" id="output-panel">
+    <div class="output-empty">
+      <div class="output-glyph">∑∫</div>
+      <p class="output-hint">Describe your table schema and what you want to calculate — DAX Genie will write the formula for you.</p>
+    </div>
+  </div>
+</main>
+
+<script>
+const EXAMPLES = {
+  ytd: { schema: `Sales[OrderDate] — Date\nSales[Amount] — Decimal\nDate[Date] — Date\nDate[Year] — Integer`, description: "Calculate Year-to-Date total sales amount, resetting at the start of each year" },
+  mtd: { schema: `Sales[OrderDate] — Date\nSales[Amount] — Decimal\nDate[Date] — Date\nDate[MonthNumber] — Integer`, description: "Calculate Month-to-Date total sales amount, resetting at the start of each month" },
+  qtd: { schema: `Sales[OrderDate] — Date\nSales[Amount] — Decimal\nDate[Date] — Date\nDate[QuarterNumber] — Integer`, description: "Calculate Quarter-to-Date total sales, resetting at the start of each quarter" },
+  mom: { schema: `Sales[OrderDate] — Date\nSales[Revenue] — Decimal\nDate[Date] — Date\nDate[MonthNumber] — Integer`, description: "Month-over-month revenue growth percentage compared to the previous month" },
+  yoy: { schema: `Sales[OrderDate] — Date\nSales[Revenue] — Decimal\nDate[Date] — Date\nDate[Year] — Integer`, description: "Year-over-year revenue growth percentage compared to the same period last year" },
+  rolling3: { schema: `Sales[OrderDate] — Date\nSales[Amount] — Decimal\nDate[Date] — Date`, description: "3-month rolling average of sales amount up to the current date context" },
+  rolling12: { schema: `Sales[OrderDate] — Date\nSales[Amount] — Decimal\nDate[Date] — Date`, description: "12-month rolling average of sales, useful for smoothing annual trends" },
+  dod: { schema: `Sales[SaleDate] — Date\nSales[Units] — Integer\nDate[Date] — Date`, description: "Day-over-day percentage change in units sold compared to yesterday" },
+  sply: { schema: `Sales[OrderDate] — Date\nSales[Revenue] — Decimal\nDate[Date] — Date\nDate[Year] — Integer`, description: "Sales for the same period in the previous year using SAMEPERIODLASTYEAR" },
+  rank: { schema: `Sales[ProductCategory] — Text\nSales[Amount] — Decimal\nDate[Date] — Date`, description: "Rank each product category by total sales amount, densely ranked with no gaps" },
+  pareto: { schema: `Sales[ProductID] — Integer\nSales[ProductName] — Text\nSales[Revenue] — Decimal`, description: "Flag which products fall in the top 80% of cumulative revenue (Pareto / ABC analysis)" },
+  runningtotal: { schema: `Sales[OrderDate] — Date\nSales[Amount] — Decimal\nDate[Date] — Date`, description: "Running cumulative total of sales amount sorted by date" },
+  pct: { schema: `Sales[ProductCategory] — Text\nSales[Amount] — Decimal`, description: "Each product category's sales as a percentage of the overall grand total" },
+  pctparent: { schema: `Sales[Region] — Text\nSales[Country] — Text\nSales[Amount] — Decimal`, description: "Each country's sales as a percentage of its parent region total" },
+  topn: { schema: `Sales[ProductName] — Text\nSales[Revenue] — Decimal`, description: "Return revenue only for the top 10 products by total sales, blank for all others" },
+  budget: { schema: `Actuals[Month] — Date\nActuals[Revenue] — Decimal\nBudget[Month] — Date\nBudget[TargetRevenue] — Decimal`, description: "Budget vs actual variance in both absolute value and percentage" },
+  distinctcount: { schema: `Sales[CustomerID] — Integer\nSales[OrderDate] — Date\nSales[ProductID] — Integer`, description: "Count of distinct customers who made a purchase in the selected period" },
+  avgexclude: { schema: `Sales[OrderValue] — Decimal\nSales[OrderDate] — Date`, description: "Average order value excluding the top 5% and bottom 5% outliers" },
+  lastnonblank: { schema: `Inventory[Date] — Date\nInventory[StockLevel] — Integer\nInventory[ProductID] — Integer`, description: "Last non-blank stock level for each product (most recent recorded value)" },
+  conditional: { schema: `Sales[Amount] — Decimal\nSales[Region] — Text\nSales[Channel] — Text\nDate[Date] — Date`, description: "A measure that switches between showing revenue or units based on a what-if parameter slicer selection" },
+};
+
+function loadExample(key) {
+  const ex = EXAMPLES[key];
+  if (!ex) return;
+  document.getElementById('schema').value = ex.schema;
+  document.getElementById('description').value = ex.description;
+}
+
+function highlightDAX(code) {
+  const keywords = ['CALCULATE','FILTER','ALL','ALLEXCEPT','VALUES','DISTINCT','IF','SWITCH','RETURN','VAR','EVALUATE','SUMMARIZE','ADDCOLUMNS','SELECTCOLUMNS','GROUPBY','RANKX','TOPN','EARLIER','EARLIEST','RELATED','RELATEDTABLE','USERELATIONSHIP','CROSSFILTER','KEEPFILTERS','REMOVEFILTERS','ALLSELECTED','ALLNOBLANKROW','DATEADD','DATESYTD','DATESMTD','DATESQTD','TOTALYTD','TOTALMTD','TOTALQTD','DATESINPERIOD','SAMEPERIODLASTYEAR','PARALLELPERIOD','FIRSTDATE','LASTDATE','STARTOFYEAR','ENDOFYEAR','STARTOFMONTH','ENDOFMONTH','IN','NOT','AND','OR','TRUE','FALSE','BLANK'];
+  const functions = ['SUM','SUMX','AVERAGE','AVERAGEX','COUNT','COUNTA','COUNTX','COUNTROWS','COUNTBLANK','DISTINCTCOUNT','MIN','MAX','MINX','MAXX','DIVIDE','ABS','ROUND','ROUNDUP','ROUNDDOWN','INT','MOD','POWER','SQRT','CONCATENATE','LEFT','RIGHT','MID','LEN','TRIM','UPPER','LOWER','FORMAT','TEXT','VALUE','DATE','TODAY','NOW','YEAR','MONTH','DAY','HOUR','MINUTE','SECOND','WEEKDAY','WEEKNUM','EOMONTH','EDATE','ISBLANK','ISNUMBER','ISTEXT','ISERROR','HASONEVALUE','HASONEFILTER','SELECTEDVALUE','LASTNONBLANK','FIRSTNONBLANK','GENERATE','GENERATESERIES','CALENDAR','CALENDARAUTO','CONTAINS','SEARCH','FIND','SUBSTITUTE','LOOKUPVALUE'];
+  let e = code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  e = e.replace(/(--[^\n]*)/g,'<span class="cm">$1</span>');
+  e = e.replace(/"([^"]*)"/g,'<span class="str">"$1"</span>');
+  keywords.forEach(k => { e = e.replace(new RegExp(`\\b${k}\\b`,'g'),`<span class="kw">${k}</span>`); });
+  functions.forEach(f => { e = e.replace(new RegExp(`\\b${f}\\b`,'g'),`<span class="fn">${f}</span>`); });
+  e = e.replace(/\b(\d+(\.\d+)?)\b/g,'<span class="num">$1</span>');
+  return e;
+}
+
+let history = [];
+
+function addToHistory(description) {
+  if (!description) return;
+  const short = description.length > 55 ? description.slice(0,52)+'...' : description;
+  history.unshift({ text: short, full: description });
+  if (history.length > 5) history.pop();
+  renderHistory();
+}
+
+function renderHistory() {
+  const sec = document.getElementById('history-section');
+  const list = document.getElementById('history-list');
+  if (!history.length) { sec.style.display = 'none'; return; }
+  sec.style.display = 'block';
+  list.innerHTML = history.map((h,i) => `<div class="history-item" onclick="reloadHistory(${i})">${h.text}</div>`).join('');
+}
+
+function reloadHistory(i) {
+  document.getElementById('description').value = history[i].full;
+}
+
+async function generateDAX() {
+  const schema = document.getElementById('schema').value.trim();
+  const description = document.getElementById('description').value.trim();
+  const modelType = document.getElementById('model-type').value;
+  const outputStyle = document.getElementById('output-style').value;
+
+  if (!description) { showError('Please describe what you want to calculate.'); return; }
+
+  const btn = document.getElementById('generate-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Generating...';
+
+  const styleInstructions = {
+    formatted: 'Write well-formatted DAX with proper indentation, line breaks, and inline comments. After the formula, provide a clear explanation of how it works in 3-5 sentences.',
+    minimal: 'Return only the DAX measure formula, no explanation. Keep it concise but correct.',
+    verbose: 'Write the DAX formula with VAR decomposition where helpful, inline comments on each step, and a detailed explanation of every function used.'
+  }[outputStyle];
+
+  const schemaContext = schema ? `\n\nTable Schema:\n${schema}` : '\n\n(No schema provided — write the formula assuming standard naming conventions)';
+
+  const prompt = `You are an expert Power BI DAX developer. Generate a correct, efficient DAX measure formula.
+
+Model type: ${modelType}${schemaContext}
+
+User request: ${description}
+
+${styleInstructions}
+
+Format your response as JSON with this exact structure:
+{
+  "measureName": "Suggested measure name",
+  "formula": "The complete DAX formula",
+  "explanation": "Explanation of how it works",
+  "notes": "Any important notes about relationships, filters, or edge cases (optional, can be empty string)"
+}
+
+Return ONLY valid JSON. No markdown, no backticks, no extra text.`;
+
+  try {
+    const response = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await response.json();
+    if (data.error) throw new Error(data.error);
+
+    const rawText = data.content?.find(b => b.type === 'text')?.text || '';
+    let parsed;
+    try {
+      parsed = JSON.parse(rawText.replace(/```json|```/g,'').trim());
+    } catch(e) {
+      parsed = { measureName: 'Generated Measure', formula: rawText, explanation: '', notes: '' };
+    }
+
+    addToHistory(description);
+    showResult(parsed);
+
+  } catch (err) {
+    showError(`Generation failed: ${err.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span>⚡</span> Generate DAX Formula';
+  }
+}
+
+function showError(msg) {
+  document.getElementById('output-panel').innerHTML = `<div style="padding:2rem"><div class="error-msg">${msg}</div></div>`;
+}
+
+function showResult(data) {
+  const highlighted = highlightDAX(data.formula || '');
+  const escapedFormula = (data.formula || '').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,'\\n');
+
+  const notesHTML = data.notes ? `
+    <div class="result-block">
+      <div class="result-block-header"><span class="result-block-title">⚠ Notes &amp; Edge Cases</span></div>
+      <div class="explanation-text">${data.notes}</div>
+    </div>` : '';
+
+  const explanationHTML = data.explanation ? `
+    <div class="result-block">
+      <div class="result-block-header"><span class="result-block-title">How it works</span></div>
+      <div class="explanation-text">${data.explanation}</div>
+    </div>` : '';
+
+  document.getElementById('output-panel').innerHTML = `
+    <div class="result">
+      <div style="font-size:12px;color:var(--text-muted)">
+        Measure: <strong style="color:var(--text)">${data.measureName || 'Generated Measure'}</strong>
+      </div>
+      <div class="result-block">
+        <div class="result-block-header">
+          <span class="result-block-title">DAX Formula</span>
+          <button class="copy-btn" id="copy-btn" onclick="copyFormula('${escapedFormula}')">Copy</button>
+        </div>
+        <pre class="dax-code"><code>${highlighted}</code></pre>
+      </div>
+      ${explanationHTML}
+      ${notesHTML}
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <span class="example-chip" onclick="generateDAX()">↺ Regenerate</span>
+        <span class="example-chip" onclick="refineFormula()">✦ Refine</span>
+        <span class="example-chip" onclick="explainMore()">? Explain in depth</span>
+      </div>
+    </div>`;
+}
+
+function copyFormula(formula) {
+  navigator.clipboard.writeText(formula).then(() => {
+    const btn = document.getElementById('copy-btn');
+    if (!btn) return;
+    btn.textContent = '✓ Copied';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+function refineFormula() {
+  const desc = document.getElementById('description').value.trim();
+  document.getElementById('description').value = desc + '\n\nAlso handle blank values gracefully and optimize for performance.';
+  generateDAX();
+}
+
+function explainMore() {
+  const current = document.getElementById('description').value.trim();
+  document.getElementById('description').value = current + '\n\nExplain every function, every argument, and any performance implications in detail.';
+  document.getElementById('output-style').value = 'verbose';
+  generateDAX();
+}
+</script>
+</body>
+</html>
