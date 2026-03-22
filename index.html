@@ -397,9 +397,11 @@ function showError(msg) {
   document.getElementById('output-panel').innerHTML = `<div style="padding:2rem"><div class="error-msg">${msg}</div></div>`;
 }
 
+let _currentFormula = "";
+
 function showResult(data) {
   const highlighted = highlightDAX(data.formula || '');
-  const escapedFormula = (data.formula || '').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,'\\n');
+  _currentFormula = data.formula || '';
 
   const notesHTML = data.notes ? `
     <div class="result-block">
@@ -421,7 +423,7 @@ function showResult(data) {
       <div class="result-block">
         <div class="result-block-header">
           <span class="result-block-title">DAX Formula</span>
-          <button class="copy-btn" id="copy-btn" onclick="copyFormula('${escapedFormula}')">Copy</button>
+          <button class="copy-btn" id="copy-btn" onclick="copyFormula()">Copy</button>
         </div>
         <pre class="dax-code"><code>${highlighted}</code></pre>
       </div>
@@ -435,8 +437,8 @@ function showResult(data) {
     </div>`;
 }
 
-function copyFormula(formula) {
-  navigator.clipboard.writeText(formula).then(() => {
+function copyFormula() {
+  navigator.clipboard.writeText(_currentFormula).then(() => {
     const btn = document.getElementById('copy-btn');
     if (!btn) return;
     btn.textContent = '✓ Copied';
